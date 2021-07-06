@@ -60,21 +60,12 @@ class PCNNs(torch.nn.Module):
         for token, pos_h, pos_t, mask, label in zip(bags['bags_of_token_ids'], bags['bags_of_pos_h_ids'],
                                                     bags['bags_of_pos_t_ids'],
                                                     bags['bags_of_mask'], bags['label']):
-            self.eval()
-            with torch.no_grad():
-                logits = self.forward(token, pos_h, pos_t, mask)
 
-            # sample one
+            logits = self.forward(token, pos_h, pos_t, mask)
+
+            # sample
             idx = logits[:, int(label)].argmax()
-
-            self.train()
-            token_ = token[idx: idx + 1]
-            pos_h_ = pos_h[idx: idx + 1]
-            pos_t_ = pos_t[idx: idx + 1]
-            mask_ = mask[idx: idx + 1]
-            logits = self.forward(token_, pos_h_, pos_t_, mask_)
-
-            batch_logits.append(logits)
+            batch_logits.append(logits[idx])
 
         batch_logits = torch.cat(batch_logits)
         return self.criterion(batch_logits, bags['label'])
@@ -86,25 +77,16 @@ class PCNNs(torch.nn.Module):
                                      bags['bags_of_pos_h_ids'], bags['bags_of_pos_t_ids'],
                                      bags['bags_of_mask'])
 
-        self.eval()
-        with torch.no_grad():
-            logits = self.forward(token, pos_h, pos_t, mask)
+        logits = self.forward(token, pos_h, pos_t, mask)
 
-        sample_idx = []
+        sample_logits = []
         for label, (lhs, rhs) in zip(bags['label'], bags['scope']):
             # sample
             idx = logits[lhs:rhs][:, label].argmax()
-            sample_idx.append(lhs + idx)
-        sample_idx = torch.stack(sample_idx)
+            sample_logits.append(logits[lhs + idx])
+        sample_logits = torch.stack(sample_logits)
 
-        self.train()
-        token_ = token[sample_idx]
-        pos_h_ = pos_h[sample_idx]
-        pos_t_ = pos_t[sample_idx]
-        mask_ = mask[sample_idx]
-        logits = self.forward(token_, pos_h_, pos_t_, mask_)
-
-        return self.criterion(logits, bags['label'])
+        return self.criterion(sample_logits, bags['label'])
 
     def forward(self, input_ids: torch.LongTensor, pos_h: torch.LongTensor, pos_t: torch.LongTensor,
                 mask: torch.LongTensor):

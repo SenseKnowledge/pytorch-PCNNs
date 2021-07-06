@@ -30,17 +30,18 @@ def move_tensor_to_device(x, device):
         return x
 
 
-def read_bag_from_nyt10_json(path_to_nyt10):
-    """Read bags from NYT10 Json File"""
+def read_bag_from_nyt10m_text(path_to_nyt10m):
+    """Read bags from NYT10m Json File"""
     bags = defaultdict(list)
-    with open(path_to_nyt10, 'r') as f:
-        for sample in json.load(f):
+    with open(path_to_nyt10m, 'r', encoding='utf-8') as f:
+        for line in f:
+            sample = json.loads(line.strip())
             relation = sample['relation']
-            head = sample['head']['word']
-            tail = sample['tail']['word']
-            text = sample['sentence']
-            bags[relation, head, tail].append({'head': head, 'head_pos': _pos(head, text),
-                                               'tail': tail, 'tail_pos': _pos(tail, text),
+            head = sample['h']['name']
+            tail = sample['t']['name']
+            text = sample['text']
+            bags[relation, head, tail].append({'head': head, 'head_pos': sample['h']['pos'],
+                                               'tail': tail, 'tail_pos': sample['t']['pos'],
                                                'relation': relation,
                                                'text': text
                                                })
@@ -48,24 +49,20 @@ def read_bag_from_nyt10_json(path_to_nyt10):
     return bags
 
 
-def read_instance_from_nyt10_json(path_to_nyt10):
-    """Read instance from NYT10 Json File"""
+def read_instance_from_nyt10m_text(path_to_nyt10m):
+    """Read instance from NYT10m Json File"""
     out = []
-    with open(path_to_nyt10, 'r') as f:
-        for sample in json.load(f):
+    with open(path_to_nyt10m, 'r', encoding='utf-8') as f:
+        for line in f:
+            sample = json.loads(line.strip())
             relation = sample['relation']
-            head = sample['head']['word']
-            tail = sample['tail']['word']
-            text = sample['sentence']
-            out.append({'head': head, 'head_pos': _pos(head, text),
-                        'tail': tail, 'tail_pos': _pos(tail, text),
+            head = sample['h']['name']
+            tail = sample['t']['name']
+            text = sample['text']
+            out.append({'head': head, 'head_pos': sample['h']['pos'],
+                        'tail': tail, 'tail_pos': sample['t']['pos'],
                         'relation': relation,
-                        'text': text,
+                        'text': text
                         })
 
     return out
-
-
-def _pos(x, text):
-    start = text.find(x)
-    return start, start + len(x)
